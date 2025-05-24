@@ -8,6 +8,8 @@ const SLIDES = Array.from({ length: 8 }, (_, i) => `/images/slider/slide${i + 1}
 const SLIDE_COUNT = SLIDES.length;
 const SLIDE_SIZE = 220; // px, must match max size
 const GAP = 16; // px, gap-4
+const MOBILE_GAP = 8; // px, gap-2 for mobile
+const TABLET_GAP = 12; // px, gap-3 for tablet
 const SPEED = 120; // px/second
 
 // Proportional top values for each content and slider section (in %, relative to background height)
@@ -105,6 +107,10 @@ export default function Home() {
   // Responsive state for slider/grid item size
   const [isMobile, setIsMobile] = useState(false);
 
+  // Slider için yeni state'ler
+  const [sliderItems, setSliderItems] = useState([...SLIDES, ...SLIDES, ...SLIDES]); // 3 set of slides
+  const sliderRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 640);
     checkMobile();
@@ -119,9 +125,9 @@ export default function Home() {
       if (window.innerWidth < 640) {
         setGridTop('100%');
       } else if (window.innerWidth < 1024) {
-        setGridTop('99%');
+        setGridTop('98.3%');
       } else {
-        setGridTop('98.5%');
+        setGridTop('99.2%');
       }
     };
     updateGridTop();
@@ -135,8 +141,8 @@ export default function Home() {
       lastTime.current = now;
       setX((prev) => {
         let next = prev - SPEED * delta;
-        // For seamless loop, reset when scrolled total width
-        if (next <= -totalWidth) {
+        // Reset position when reaching the end of the second set
+        if (next <= -totalWidth * 2) {
           next += totalWidth;
         }
         return next;
@@ -145,6 +151,26 @@ export default function Home() {
       lastTime.current = now;
     }
   });
+
+  // Slider pozisyonunu sıfırlama efekti
+  useEffect(() => {
+    const handleTransitionEnd = () => {
+      if (x <= -totalWidth * 2) {
+        setX(-totalWidth);
+      }
+    };
+
+    const slider = sliderRef.current;
+    if (slider) {
+      slider.addEventListener('transitionend', handleTransitionEnd);
+    }
+
+    return () => {
+      if (slider) {
+        slider.removeEventListener('transitionend', handleTransitionEnd);
+      }
+    };
+  }, [x, totalWidth]);
 
   // Responsive slider top value (SSR compatible)
   const [sliderPosition, setSliderPosition] = useState('17.7%');
@@ -246,6 +272,13 @@ export default function Home() {
 
   // Custom cursor useEffect
   useEffect(() => {
+    // Mobil cihazlarda cursor'ı gösterme
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      document.body.style.cursor = 'auto';
+      return;
+    }
+
     let rafId: number;
     let lastX = 0;
     let lastY = 0;
@@ -371,25 +404,32 @@ export default function Home() {
             onMouseLeave={() => setIsPaused(false)}
           >
             <motion.div
-              className="flex gap-4 items-center"
-              style={{ x, width: totalWidth * 2 }}
+              ref={sliderRef}
+              className="flex items-center"
+              style={{ 
+                x,
+                width: totalWidth * 3,
+                willChange: 'transform',
+                transition: isPaused ? 'none' : 'transform 0.1s linear',
+                gap: isMobile ? MOBILE_GAP : (window.innerWidth < 1024 ? TABLET_GAP : GAP)
+              }}
             >
-              {[...SLIDES, ...SLIDES].map((src, idx) => (
+              {sliderItems.map((src, idx) => (
                 <motion.div
                   key={idx}
                   className="flex-shrink-0 rounded-full bg-black/60 cursor-pointer shadow-lg"
                   style={{
-                    width: isMobile ? '16vw' : '14vw',
-                    height: isMobile ? '16vw' : '14vw',
-                    maxWidth: 220,
-                    maxHeight: 220,
+                    width: isMobile ? '16vw' : (window.innerWidth < 1024 ? '18vw' : '14vw'),
+                    height: isMobile ? '16vw' : (window.innerWidth < 1024 ? '18vw' : '14vw'),
+                    maxWidth: window.innerWidth < 1024 ? 260 : 220,
+                    maxHeight: window.innerWidth < 1024 ? 260 : 220,
                     minWidth: 80,
                     minHeight: 80,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     overflow: 'visible',
-                    marginRight: GAP,
+                    marginRight: isMobile ? MOBILE_GAP : (window.innerWidth < 1024 ? TABLET_GAP : GAP),
                   }}
                   whileHover={{ scale: 1.45, zIndex: 10 }}
                   transition={{ type: 'spring', stiffness: 200, damping: 18 }}
@@ -425,7 +465,16 @@ export default function Home() {
           <HotspotGrid />
         </div>
       </main>
-      <div style={{ height: '135vh', width: '100%' }} aria-hidden="true"></div>
+      <div style={{ 
+        height: typeof window !== 'undefined' 
+          ? (window.innerWidth < 640 
+            ? '79vh' 
+            : window.innerWidth < 1024 
+              ? '115vh' 
+              : '145vh')
+          : '145vh', 
+        width: '100%' 
+      }} aria-hidden="true"></div>
       {showChecker && <TicketCheckerModal onClose={() => setShowChecker(false)} />}
     </>
   );
@@ -588,6 +637,26 @@ function HotspotGrid() {
               justifyContent: 'center' as const,
             }}
           >
+            {/* Sol ok */}
+            <button
+              onClick={() => setModal((prev) => prev === null ? 0 : (prev - 1 + HOTSPOTS.length) % HOTSPOTS.length)}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center transition select-none custom-cursor-pointer z-10"
+              style={{ cursor: 'none' }}
+              aria-label="Previous"
+            >
+              <div className="w-8 h-8 border-t-2 border-l-2 border-white transform rotate-[-45deg]"></div>
+            </button>
+
+            {/* Sağ ok */}
+            <button
+              onClick={() => setModal((prev) => prev === null ? 0 : (prev + 1) % HOTSPOTS.length)}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center transition select-none custom-cursor-pointer z-10"
+              style={{ cursor: 'none' }}
+              aria-label="Next"
+            >
+              <div className="w-8 h-8 border-t-2 border-r-2 border-white transform rotate-45"></div>
+            </button>
+
             <div style={{ width: '100%', aspectRatio: '4 / 3', maxWidth: 900, maxHeight: 675, background: '#111', borderRadius: 18, overflow: 'hidden', marginBottom: 24 }}>
               <img
                 src={gridItems[modal].img}
@@ -615,6 +684,26 @@ function HotspotGrid() {
     // Mobil: contextual modal, 4:3 oranlı görsel
     return modalPos && (
       <div style={getModalStyle()}>
+        {/* Sol ok */}
+        <button
+          onClick={() => setModal((prev) => prev === null ? 0 : (prev - 1 + HOTSPOTS.length) % HOTSPOTS.length)}
+          className="absolute left-2 top-1/2 transform -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center transition select-none custom-cursor-pointer z-10"
+          style={{ cursor: 'none' }}
+          aria-label="Previous"
+        >
+          <div className="w-6 h-6 border-t-2 border-l-2 border-white transform rotate-[-45deg]"></div>
+        </button>
+
+        {/* Sağ ok */}
+        <button
+          onClick={() => setModal((prev) => prev === null ? 0 : (prev + 1) % HOTSPOTS.length)}
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/30 flex items-center justify-center transition select-none custom-cursor-pointer z-10"
+          style={{ cursor: 'none' }}
+          aria-label="Next"
+        >
+          <div className="w-6 h-6 border-t-2 border-r-2 border-white transform rotate-45"></div>
+        </button>
+
         <div style={{ width: '100%', aspectRatio: '4 / 3', background: '#111', borderRadius: 18, overflow: 'hidden', marginBottom: 16 }}>
           <img
             src={gridItems[modal].img}
@@ -639,14 +728,77 @@ function HotspotGrid() {
     );
   };
 
+  // Touchpad için kaydırma kontrolü
+  useEffect(() => {
+    const modal = document.getElementById('hotspot-modal-bg');
+    if (!modal) return;
+
+    let isScrolling = false;
+    let startX: number;
+    let startY: number;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      isScrolling = true;
+      startX = e.touches[0].pageX;
+      startY = e.touches[0].pageY;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isScrolling) return;
+      const x = e.touches[0].pageX;
+      const y = e.touches[0].pageY;
+      const deltaX = x - startX;
+      const deltaY = y - startY;
+
+      // Yatay kaydırma eşiği (dikey kaydırmadan daha fazla)
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+        if (deltaX > 0) {
+          // Sağa kaydırma
+          setModal((prev) => prev === null ? 0 : (prev - 1 + HOTSPOTS.length) % HOTSPOTS.length);
+        } else {
+          // Sola kaydırma
+          setModal((prev) => prev === null ? 0 : (prev + 1) % HOTSPOTS.length);
+        }
+        isScrolling = false;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      isScrolling = false;
+    };
+
+    modal.addEventListener('touchstart', handleTouchStart);
+    modal.addEventListener('touchmove', handleTouchMove);
+    modal.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      modal.removeEventListener('touchstart', handleTouchStart);
+      modal.removeEventListener('touchmove', handleTouchMove);
+      modal.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [modal]);
+
   return (
     <>
       <div
         id="hotspot-grid"
         ref={gridRef}
-        className="grid grid-cols-2 grid-rows-5 gap-8 p-4"
-        style={{ maxWidth: 1200 }}
+        className="grid grid-cols-2 grid-rows-5 gap-8 p-4 overflow-x-auto"
+        style={{ 
+          maxWidth: 1200,
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          WebkitOverflowScrolling: 'touch'
+        }}
       >
+        {/* Sağa/sola kaydırma göstergesi */}
+        <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-12 h-12 flex items-center justify-center opacity-50 pointer-events-none">
+          <div className="w-8 h-8 border-t-2 border-l-2 border-white transform rotate-[-45deg]"></div>
+        </div>
+        <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-12 h-12 flex items-center justify-center opacity-50 pointer-events-none">
+          <div className="w-8 h-8 border-t-2 border-r-2 border-white transform rotate-45"></div>
+        </div>
+
         {gridItems.map((h, i) => (
           <div
             key={i}

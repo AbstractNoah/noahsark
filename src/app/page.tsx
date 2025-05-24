@@ -116,7 +116,7 @@ export default function Home() {
   });
 
   // Slider için yeni state'ler
-  const [sliderItems, setSliderItems] = useState([...SLIDES, ...SLIDES, ...SLIDES]); // 3 set of slides
+  const [sliderItems, setSliderItems] = useState([...SLIDES, ...SLIDES, ...SLIDES, ...SLIDES]); // 4 set of slides
   const sliderRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -432,7 +432,7 @@ export default function Home() {
               className="flex items-center"
               style={{ 
                 x,
-                width: totalWidth * 3,
+                width: totalWidth * 4,
                 willChange: 'transform',
                 transition: isPaused ? 'none' : 'transform 0.1s linear',
                 gap: sliderGap
@@ -809,14 +809,6 @@ function HotspotGrid() {
           WebkitOverflowScrolling: 'touch'
         }}
       >
-        {/* Sağa/sola kaydırma göstergesi */}
-        <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-12 h-12 flex items-center justify-center opacity-50 pointer-events-none">
-          <div className="w-8 h-8 border-t-2 border-l-2 border-white transform rotate-[-45deg]"></div>
-        </div>
-        <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-12 h-12 flex items-center justify-center opacity-50 pointer-events-none">
-          <div className="w-8 h-8 border-t-2 border-r-2 border-white transform rotate-45"></div>
-        </div>
-
         {gridItems.map((h, i) => (
           <div
             key={i}
@@ -845,7 +837,7 @@ function HotspotGrid() {
               className="absolute bottom-0 left-0 w-full px-4 py-2 text-center transition-all duration-300 rounded-b-2xl opacity-0 max-h-0 pointer-events-none group-hover:opacity-100 group-hover:max-h-20 group-hover:pointer-events-auto"
               style={{ background: 'rgba(0,0,0,0.7)', borderRadius: '0 0 1rem 1rem' }}
             >
-              <h3 className="text-lg font-bold text-white mb-0 whitespace-pre-line">{h.title}</h3>
+              <h3 className="text-sm md:text-lg font-bold text-white mb-0 whitespace-pre-line">{h.title}</h3>
               {/* Metin hover'da gösterilmeyecek */}
             </div>
           </div>

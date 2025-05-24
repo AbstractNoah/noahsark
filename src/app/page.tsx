@@ -106,16 +106,40 @@ export default function Home() {
   const [showChecker, setShowChecker] = useState(false);
   // Responsive state for slider/grid item size
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+  const [sliderGap, setSliderGap] = useState(GAP);
+  const [sliderSize, setSliderSize] = useState({
+    width: '14vw',
+    height: '14vw',
+    maxWidth: 220,
+    maxHeight: 220
+  });
 
   // Slider için yeni state'ler
   const [sliderItems, setSliderItems] = useState([...SLIDES, ...SLIDES, ...SLIDES]); // 3 set of slides
   const sliderRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 640);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    const checkDevice = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+      
+      // Slider gap ayarları
+      setSliderGap(width < 640 ? MOBILE_GAP : (width < 1024 ? TABLET_GAP : GAP));
+      
+      // Slider boyut ayarları
+      setSliderSize({
+        width: width < 640 ? '16vw' : (width < 1024 ? '18vw' : '14vw'),
+        height: width < 640 ? '16vw' : (width < 1024 ? '18vw' : '14vw'),
+        maxWidth: width < 1024 ? 260 : 220,
+        maxHeight: width < 1024 ? 260 : 220
+      });
+    };
+
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
   }, []);
 
   // Responsive grid top value (SSR compatible)
@@ -411,7 +435,7 @@ export default function Home() {
                 width: totalWidth * 3,
                 willChange: 'transform',
                 transition: isPaused ? 'none' : 'transform 0.1s linear',
-                gap: isMobile ? MOBILE_GAP : (window.innerWidth < 1024 ? TABLET_GAP : GAP)
+                gap: sliderGap
               }}
             >
               {sliderItems.map((src, idx) => (
@@ -419,17 +443,17 @@ export default function Home() {
                   key={idx}
                   className="flex-shrink-0 rounded-full bg-black/60 cursor-pointer shadow-lg"
                   style={{
-                    width: isMobile ? '16vw' : (window.innerWidth < 1024 ? '18vw' : '14vw'),
-                    height: isMobile ? '16vw' : (window.innerWidth < 1024 ? '18vw' : '14vw'),
-                    maxWidth: window.innerWidth < 1024 ? 260 : 220,
-                    maxHeight: window.innerWidth < 1024 ? 260 : 220,
+                    width: sliderSize.width,
+                    height: sliderSize.height,
+                    maxWidth: sliderSize.maxWidth,
+                    maxHeight: sliderSize.maxHeight,
                     minWidth: 80,
                     minHeight: 80,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     overflow: 'visible',
-                    marginRight: isMobile ? MOBILE_GAP : (window.innerWidth < 1024 ? TABLET_GAP : GAP),
+                    marginRight: sliderGap,
                   }}
                   whileHover={{ scale: 1.45, zIndex: 10 }}
                   transition={{ type: 'spring', stiffness: 200, damping: 18 }}
@@ -466,13 +490,7 @@ export default function Home() {
         </div>
       </main>
       <div style={{ 
-        height: typeof window !== 'undefined' 
-          ? (window.innerWidth < 640 
-            ? '79vh' 
-            : window.innerWidth < 1024 
-              ? '115vh' 
-              : '145vh')
-          : '145vh', 
+        height: isMobile ? '79vh' : (isTablet ? '115vh' : '145vh'),
         width: '100%' 
       }} aria-hidden="true"></div>
       {showChecker && <TicketCheckerModal onClose={() => setShowChecker(false)} />}
